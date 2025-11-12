@@ -4,4 +4,10 @@ venv
 
 *.csv
 *.parquet
+*.feather
+
+.DS_Store
+
+*.h5
+*.p
 
