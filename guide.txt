@@ -1,0 +1,6 @@
+DATA:
+2017: http://205.174.165.80/CICDataset/CIC-IDS-2017/Dataset/CIC-IDS-2017/CSVs/ (GeneratedLabelledFlows)
+2018: 
+    Install aws cli: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
+
+    Fetch dataset files from S3 bucket: aws s3 cp --no-sign-request --region eu-west-3 "s3://cse-cic-ids2018/Processed Traffic Data for ML Algorithms/" ~/Downloads/CSE-CIC-IDS2018 --recursive
