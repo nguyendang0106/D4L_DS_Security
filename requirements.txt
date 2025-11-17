@@ -1,2 +1,13 @@
 pandas
 pyarrow
+
+fastapi
+uvicorn
+pandas
+numpy
+scikit-learn
+joblib
+pytz
+requests
+dash
+plotly

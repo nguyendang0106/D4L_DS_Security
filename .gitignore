@@ -11,3 +11,4 @@ venv
 *.h5
 *.p
 
+__pycache__
