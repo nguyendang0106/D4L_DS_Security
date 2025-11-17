@@ -4,3 +4,8 @@ DATA:
     Install aws cli: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
 
     Fetch dataset files from S3 bucket: aws s3 cp --no-sign-request --region eu-west-3 "s3://cse-cic-ids2018/Processed Traffic Data for ML Algorithms/" ~/Downloads/CSE-CIC-IDS2018 --recursive
+
+
+upload data 2017 to kaggle (data2017/original/*.csv)
+
+run d4l-ds-security-data.ipynb on kaggle in order to have: cicids2017_clean.zip, cicids2018_clean.zip
