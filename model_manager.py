@@ -23,37 +23,54 @@ from myutil.common import load_data
 # MODELS_DIR = "models"
 # DATA_DIR = "data"
 
-train = {
-    "ocsvm": {}, # 10k samples
-    "ae": {}, # 100k samples
-    "stage2": {}
-}
-val = {
-    "ocsvm": {},
-    "ae": {},
-    "stage2": {}
-}
-test = {
-    # "y"
-    # "y_binary"
-    # "y_unknown"
-    # "x"
-}
-
 def get_data_paths(data_year: int):
+    """Trả về đường dẫn data theo năm"""
     return os.path.join(DATA_DIR, f"{data_year}/") 
 
-def testing():
+def get_model_paths(model_name: str, machine_name: str):
+    pass
+    # """Trả về đường dẫn lưu model và scaler."""
+    # model_base_name = machine_name.replace(' ', '_')
+    # model_path = os.path.join(MODELS_DIR, f"{model_base_name}_{model_name}_model.pkl")
+    # scaler_path = os.path.join(MODELS_DIR, f"{model_base_name}_{model_name}_scaler.pkl")
+    # return model_path, scaler_path
+
+def create_ocsvm(params):
+    return Pipeline(
+        [
+            ("pca", PCA(n_components=None, copy=True, whiten=False, svd_solver='auto', tol=0.0, iterated_power='auto', random_state=42)), 
+            ("ocsvm", OneClassSVM(kernel='rbf', degree=3, gamma='scale', coef0=0.0, tol=0.001, nu=0.5, shrinking=True, cache_size=200, verbose=True, max_iter=-1))
+        ]
+    ).set_params(**params)
+
+def retrain_OCSVM_model(n_samples: int):
+    """Huấn luyện lại mô hình."""
+    train = {
+        "ocsvm": {}, # 10k samples
+        "ae": {}, # 100k samples
+        "stage2": {}
+    }
+    val = {
+        "ocsvm": {},
+        "ae": {},
+        "stage2": {}
+    }
+    test = {
+        # "y"
+        # "y_binary"
+        # "y_unknown"
+        # "x"
+    }
     # LOAD DATA STAGE 1 copy from d4l-ds-security-train.ipynb
     clean_dir = get_data_paths(2017)
-    print(clean_dir)
-    train["ocsvm"]["x"], train["ocsvm"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=1948, train_size=10000, val_size=129485, test_size=56468)
+
+    train["ocsvm"]["x"], train["ocsvm"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=n_samples, train_size=10000, val_size=129485, test_size=56468)
 
     val["ocsvm"]["x"] = np.concatenate((x_benign_val, x_malicious_train))
     val["ocsvm"]["y"] = np.concatenate((y_benign_val, np.full(y_malicious_train.shape[0], -1)))
 
 
-    train["ae"]["x"], train["ae"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=1948, val_size=129485, test_size=56468)
+    train["ae"]["x"], train["ae"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=n_samples, val_size=129485, test_size=56468) # Van phai truyen vao train size
 
     val["ae"]["x"] = np.concatenate((x_benign_val, x_malicious_train))
     val["ae"]["y"] = np.concatenate((y_benign_val, np.full(y_malicious_train.shape[0], -1)))
@@ -79,9 +96,6 @@ def testing():
     test["y_unknown"] = np.where((test["y"] == "Heartbleed") | (test["y"] == "Infiltration"), "Unknown", test["y"])
     test["y_unknown_all"] = np.where(test['y_unknown'] == 'Benign', "Unknown", test['y_unknown'])
     # --------------------------------------------------------------------------------------------------------------
-    # Output directory on Kaggle (must be /kaggle/working)
-    # output_dir = Path("/kaggle/working")
-    # output_dir.mkdir(exist_ok=True)
 
     ###############################################
     # 1. OCSVM Scaler (normal)
@@ -141,19 +155,12 @@ def testing():
         pickle.dump(scaler_stage2_uniform, f)
 
     print("Saved scaler_stage2_uniform.p")
-
-if __name__ == "__main__":
-    testing()
-
-def get_model_paths(model_name: str, machine_name: str):
-    """Trả về đường dẫn lưu model và scaler."""
-    model_base_name = machine_name.replace(' ', '_')
-    model_path = os.path.join(MODELS_DIR, f"{model_base_name}_{model_name}_model.pkl")
-    scaler_path = os.path.join(MODELS_DIR, f"{model_base_name}_{model_name}_scaler.pkl")
-    return model_path, scaler_path
-
-# def retrain_model(model_name: str, machine_name: str, n_samples: int):
-#     """Huấn luyện lại mô hình."""
+    params_ocsvm = {
+        "pca__n_components": 56,
+        "ocsvm__kernel": "rbf",
+        "ocsvm__gamma": 0.0632653906314333,
+        "ocsvm__nu": 0.0002316646233151
+    }
 #     if model_name not in {'OCSVM','IForest'}:
 #         raise ValueError(f"Không tìm thấy mô hình: {model_name}")
 
@@ -177,12 +184,26 @@ def get_model_paths(model_name: str, machine_name: str):
 #                              index=df.index,
 #                              columns=df.columns)
 
-#     # 4. Huấn luyện OCSVM
-#     model = OneClassSVM(kernel='rbf', nu=cont_rate, gamma='auto') if model_name == 'OCSVM' else IsolationForest(n_estimators=100, contamination=cont_rate, random_state=42)
-#     model.fit(df_scaled)
+    # 4. Huấn luyện OCSVM
+    AE = False
+    output_dir = MODELS_DIR
+    ocsvm_model = create_ocsvm(params_ocsvm)
+    if not AE:
+        ocsvm_model.fit(train['ocsvm']['x_s'])
+        with open(output_dir / "ocsvm_model_10k.p", "wb") as f:
+            pickle.dump(ocsvm_model, f)
+    else:
+        ocsvm_model.fit(train['ae']['x_s'])
+        with open(output_dir / "ocsvm_model_100k_stage1.p", "wb") as f:
+            pickle.dump(ocsvm_model, f)
+    print("Saved ocsvm_model_10k.p")
+    pass
 
 #     # 5. Lưu Model và Scaler
 #     joblib.dump(model, model_path)
 #     joblib.dump(scaler, scaler_path)
-    
+# Muon return gi return o day
 #     return len(df_scaled), len(df_scaled.columns)
+
+# if __name__ == "__main__":
+#     retrain_OCSVM_model(1948)

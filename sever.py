@@ -20,20 +20,18 @@ app = FastAPI(title="OCSVM Anomaly Detection API")
 class RetrainParams(BaseModel):
     """Cấu trúc dữ liệu đầu vào cho API Retrain."""
     # Đã thêm trường machine_name
-    model_name: str = Field(..., example="OCSVM", description="Tên mô hình cần huấn luyện lại.") 
-    machine_name: str = Field(..., example="Air compressor", description="Tên máy cần huấn luyện lại.") 
-    n_samples: int = Field(40000, description="Số lượng mẫu (record) gần nhất dùng để huấn luyện.")
+    n_samples: int = Field(40000, description="Số lượng mẫu dùng để huấn luyện - train_size.")
 
-class DataPoint(BaseModel):
-    """Cấu trúc dữ liệu đầu vào cho API Infer."""
-    model_name: str = Field(..., example="IForest", description="Tên model infer")
-    machine_name: str = Field(..., example="Air compressor")
-    time: str = Field(..., example="2025-05-21 12:20:00+07:00", description="Thời gian log (ISO 8601 format).") 
-    data: Dict[str, Optional[float]] = Field(..., example={
-        'point_key=439_First': 1.2, 
-        'point_key=440_First': 3.4,
-    }, description="Các thuộc tính thô dạng key: value")
-    anomaly_threshold: float = Field(-0.5, description="Ngưỡng bất thường: Score < threshold -> Anomaly")
+# class DataPoint(BaseModel):
+#     """Cấu trúc dữ liệu đầu vào cho API Infer."""
+#     model_name: str = Field(..., example="IForest", description="Tên model infer")
+#     machine_name: str = Field(..., example="Air compressor")
+#     time: str = Field(..., example="2025-05-21 12:20:00+07:00", description="Thời gian log (ISO 8601 format).") 
+#     data: Dict[str, Optional[float]] = Field(..., example={
+#         'point_key=439_First': 1.2, 
+#         'point_key=440_First': 3.4,
+#     }, description="Các thuộc tính thô dạng key: value")
+#     anomaly_threshold: float = Field(-0.5, description="Ngưỡng bất thường: Score < threshold -> Anomaly")
 
 
 # -------------------------- ROUTES API --------------------------
@@ -43,12 +41,7 @@ def retrain_model_route(params: RetrainParams):
     """
     🔄 **Retrain Model:** Huấn luyện lại mô hình OCSVM.
     """
-    model_name = params.model_name
-    machine_name = params.machine_name
     n_samples = params.n_samples
-    
-    if machine_name not in MACHINE_CONFIGS:
-        raise HTTPException(status_code=404, detail=f"Không tìm thấy cấu hình cho máy: **{machine_name}**. Vui lòng kiểm tra lại tên máy trong `app/config.py`.")
     
     try:
         n_used, n_features = retrain_model(model_name, machine_name, n_samples)
@@ -70,62 +63,63 @@ def infer_data_route(data_point: DataPoint):
     """
     🔍 **Infer Data:** Dự đoán bất thường cho một điểm dữ liệu mới, **ghi data vào file CSV** và trả về kết luận.
     """
-    model_name = data_point.model_name
-    machine_name = data_point.machine_name
+    pass
+    # model_name = data_point.model_name
+    # machine_name = data_point.machine_name
     
-    if machine_name not in MACHINE_CONFIGS:
-        raise HTTPException(status_code=404, detail=f"Không tìm thấy cấu hình cho máy: {machine_name}")
+    # if machine_name not in MACHINE_CONFIGS:
+    #     raise HTTPException(status_code=404, detail=f"Không tìm thấy cấu hình cho máy: {machine_name}")
 
-    config = MACHINE_CONFIGS[machine_name]
-    fpath = config['fpath']
-    feature_set = config['FEATURE_SET']
-    time_col = feature_set[0]
+    # config = MACHINE_CONFIGS[machine_name]
+    # fpath = config['fpath']
+    # feature_set = config['FEATURE_SET']
+    # time_col = feature_set[0]
 
-    try:
-        # 1. Chuẩn bị điểm dữ liệu mới (raw)
-        new_data_dict = {time_col: data_point.time}
+    # try:
+    #     # 1. Chuẩn bị điểm dữ liệu mới (raw)
+    #     new_data_dict = {time_col: data_point.time}
 
-        for col in feature_set[1:]:
-            input_value = data_point.data.get(col)
-            if input_value is not None:
-                new_data_dict[col] = data_point.data.get(col) 
-            else:
-                new_data_dict[col] = 0.0  # Gán 0 nếu không có trong input
+    #     for col in feature_set[1:]:
+    #         input_value = data_point.data.get(col)
+    #         if input_value is not None:
+    #             new_data_dict[col] = data_point.data.get(col) 
+    #         else:
+    #             new_data_dict[col] = 0.0  # Gán 0 nếu không có trong input
 
-        df_new_raw = pd.DataFrame([new_data_dict], columns=feature_set)
-        df_new_raw[time_col] = pd.to_datetime(df_new_raw[time_col]).dt.tz_convert(TZ)
-        df_new_raw_indexed = df_new_raw.set_index(time_col)
+    #     df_new_raw = pd.DataFrame([new_data_dict], columns=feature_set)
+    #     df_new_raw[time_col] = pd.to_datetime(df_new_raw[time_col]).dt.tz_convert(TZ)
+    #     df_new_raw_indexed = df_new_raw.set_index(time_col)
 
-        # 2. Ghi dữ liệu mới vào file CSV (append mode)
-        is_new_file = not os.path.exists(fpath)
+    #     # 2. Ghi dữ liệu mới vào file CSV (append mode)
+    #     is_new_file = not os.path.exists(fpath)
 
-        if not is_new_file:
-            with open(fpath, 'rb+') as f:
-                f.seek(-1, os.SEEK_END)
-                if f.read(1) != b'\n':
-                    f.write(b'\n')
+    #     if not is_new_file:
+    #         with open(fpath, 'rb+') as f:
+    #             f.seek(-1, os.SEEK_END)
+    #             if f.read(1) != b'\n':
+    #                 f.write(b'\n')
 
-        df_new_raw.to_csv(fpath, mode='a', index=False, header=is_new_file, lineterminator='\n')
+    #     df_new_raw.to_csv(fpath, mode='a', index=False, header=is_new_file, lineterminator='\n')
 
-        # 3. Thực hiện Infer
-        anomaly_score, is_anomaly = infer_new_data(
-            model_name,
-            machine_name, 
-            df_new_raw_indexed, 
-            data_point.anomaly_threshold
-        )
+    #     # 3. Thực hiện Infer
+    #     anomaly_score, is_anomaly = infer_new_data(
+    #         model_name,
+    #         machine_name, 
+    #         df_new_raw_indexed, 
+    #         data_point.anomaly_threshold
+    #     )
         
-        # 4. Trả kết quả
-        return {
-            "model_name": model_name,
-            "machine_name": machine_name,
-            "log_time": data_point.time,
-            "anomaly_score": anomaly_score,
-            "anomaly_threshold": data_point.anomaly_threshold,
-            "is_anomaly": is_anomaly,
-            "conclusion": "**BẤT THƯỜNG**" if is_anomaly else "Bình thường",
-            "data_logged": True
-        }
+    #     # 4. Trả kết quả
+    #     return {
+    #         "model_name": model_name,
+    #         "machine_name": machine_name,
+    #         "log_time": data_point.time,
+    #         "anomaly_score": anomaly_score,
+    #         "anomaly_threshold": data_point.anomaly_threshold,
+    #         "is_anomaly": is_anomaly,
+    #         "conclusion": "**BẤT THƯỜNG**" if is_anomaly else "Bình thường",
+    #         "data_logged": True
+    #     }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi trong quá trình infer: {type(e).__name__}: {str(e)}")
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Lỗi trong quá trình infer: {type(e).__name__}: {str(e)}")
