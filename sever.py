@@ -1,4 +1,5 @@
 # chỗ này để viết API, bằng FastAPI cho nhanh. Test bang port http://127.0.0.1:8000/docs
+# python -m uvicorn sever:app --reload
 
 import pandas as pd
 import numpy as np
@@ -7,9 +8,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Dict, Optional
 
-# Nhập các module đã tạo
-from app.config import MACHINE_CONFIGS, TZ
-from model_manager import retrain_model, infer_new_data
+from model_manager import retrain_OCSVM_model
 from myutil.common import load_data
 
 # --- Khởi tạo FastAPI ---
@@ -20,10 +19,11 @@ app = FastAPI(title="OCSVM Anomaly Detection API")
 class RetrainParams(BaseModel):
     """Cấu trúc dữ liệu đầu vào cho API Retrain."""
     # Đã thêm trường machine_name
-    n_samples: int = Field(40000, description="Số lượng mẫu dùng để huấn luyện - train_size.")
+    n_samples: int = Field(10000, description="Số lượng mẫu dùng để huấn luyện - train_size.")
 
-# class DataPoint(BaseModel):
-#     """Cấu trúc dữ liệu đầu vào cho API Infer."""
+class DataPoint(BaseModel):
+    """Cấu trúc dữ liệu đầu vào cho API Infer."""
+    pass
 #     model_name: str = Field(..., example="IForest", description="Tên model infer")
 #     machine_name: str = Field(..., example="Air compressor")
 #     time: str = Field(..., example="2025-05-21 12:20:00+07:00", description="Thời gian log (ISO 8601 format).") 
@@ -44,18 +44,14 @@ def retrain_model_route(params: RetrainParams):
     n_samples = params.n_samples
     
     try:
-        n_used, n_features = retrain_model(model_name, machine_name, n_samples)
+        retrain_OCSVM_model(n_samples)
         return {
             "status": "success",
-            "message": f"Huấn luyện lại mô hình cho **{machine_name}** thành công.",
-            "model_name": model_name,
-            "machine_name": machine_name,
-            "n_samples_used": n_used,
-            "n_features_used": n_features
+            "message": f"Huấn luyện lại mô hình OCSVM thành công."
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi trong quá trình retrain máy {machine_name}: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi trong quá trình retrain: {type(e).__name__}: {str(e)}")
 
 
 @app.post("/infer")

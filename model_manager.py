@@ -43,7 +43,7 @@ def create_ocsvm(params):
         ]
     ).set_params(**params)
 
-def retrain_OCSVM_model(n_samples: int):
+def retrain_OCSVM_model(n_samples_train: int):
     """Huấn luyện lại mô hình."""
     train = {
         "ocsvm": {}, # 10k samples
@@ -64,13 +64,13 @@ def retrain_OCSVM_model(n_samples: int):
     # LOAD DATA STAGE 1 copy from d4l-ds-security-train.ipynb
     clean_dir = get_data_paths(2017)
 
-    train["ocsvm"]["x"], train["ocsvm"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=n_samples, train_size=10000, val_size=129485, test_size=56468)
+    train["ocsvm"]["x"], train["ocsvm"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=1948, train_size=n_samples_train, val_size=129485, test_size=56468)
 
     val["ocsvm"]["x"] = np.concatenate((x_benign_val, x_malicious_train))
     val["ocsvm"]["y"] = np.concatenate((y_benign_val, np.full(y_malicious_train.shape[0], -1)))
 
 
-    train["ae"]["x"], train["ae"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=n_samples, val_size=129485, test_size=56468) # Van phai truyen vao train size
+    train["ae"]["x"], train["ae"]["y"], x_benign_val, y_benign_val, _, _, x_malicious_train, y_malicious_train, _, _, _, _, _ = load_data(clean_dir, sample_size=1948, val_size=129485, test_size=56468) # Van phai truyen vao train size
 
     val["ae"]["x"] = np.concatenate((x_benign_val, x_malicious_train))
     val["ae"]["y"] = np.concatenate((y_benign_val, np.full(y_malicious_train.shape[0], -1)))
