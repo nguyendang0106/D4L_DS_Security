@@ -1,0 +1,6 @@
+scapy 
+dash 
+requests 
+pandas 
+plotly
+pandas-stubs
