@@ -8,4 +8,10 @@ DATA:
 
 upload data 2017 to kaggle (data2017/original/*.csv)
 
-run d4l-ds-security-data.ipynb on kaggle in order to have: cicids2017_clean.zip, cicids2018_clean.zip
+run d4l-ds-security-data-kaggle.ipynb on kaggle in order to have: cicids2017_clean.zip, cicids2018_clean.zip
+up load data clean 2017, 2018 to kaggle and run d4l-ds-security-train-kaggle.ipynb in orfer to have: model/
+
+
+# Run
+uvicorn server:app --host 0.0.0.0 --port 8000
+open FE/index.html

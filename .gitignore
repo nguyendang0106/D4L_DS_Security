@@ -1,7 +1,9 @@
 venv
+venv_kaggle
 .vscode
 
-
+*.log
+*.json
 *.csv
 *.parquet
 *.feather
@@ -11,3 +13,5 @@ venv
 *.h5
 *.p
 
+__pycache__
+*.md

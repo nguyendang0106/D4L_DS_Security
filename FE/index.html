@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Network Intrusion Detection System - Real-time Monitoring</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1>AISec - Anomaly Detection System</h1>
+        <p>Real-time Network Traffic Monitoring & Analysis</p>
+        <div class="live-indicator" id="liveIndicator">
+          <span class="live-pulse"></span>
+          <span>LIVE</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <div class="control-buttons">
+          <button
+            class="btn btn-start"
+            id="startBtn"
+            onclick="startMonitoring()"
+          >
+            <span class="btn-shimmer"></span>
+            Start Monitoring
+          </button>
+          <button
+            class="btn btn-stop"
+            id="stopBtn"
+            onclick="stopMonitoring()"
+            disabled
+          >
+            <span class="btn-stop-indicator"></span>
+            Stop Monitoring
+          </button>
+        </div>
+        <div class="tabs">
+          <button class="tab active" onclick="switchPage(1)">
+            <span class="tab-indicator"></span>
+            Overview
+          </button>
+          <button class="tab" onclick="switchPage(2)">
+            <span class="tab-indicator"></span>
+            Analytics
+          </button>
+          <button class="tab" onclick="switchPage(3)">
+            <span class="tab-indicator"></span>
+            Data Storage
+          </button>
+          <button class="tab" onclick="switchPage(4)">
+            <span class="tab-indicator"></span>
+            Retrain
+          </button>
+        </div>
+      </div>
+
+      <!-- Page 1: Overview (Statistics + Logs) -->
+      <div class="page-content active" id="page1">
+        <!-- Left: Statistics -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Real-time Statistics</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Total Rows</h3>
+              <div class="value" id="totalRows">0</div>
+              <div class="label">Processed</div>
+            </div>
+            <div class="stat-card">
+              <h3>Throughput</h3>
+              <div class="value" id="throughput">0</div>
+              <div class="label">Rows/Second</div>
+            </div>
+          </div>
+          <!-- Loading -->
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px">Processing batch...</p>
+          </div>
+        </div>
+
+        <!-- Right: System Logs -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">System Logs</span>
+          </div>
+          <div class="log-container" id="logContainer">
+            <div class="log-entry log-info log-visible">
+              <span class="log-indicator"></span>
+              <span class="log-content">
+                <span class="log-time">[System]</span>
+                System ready. Click "Start Monitoring" to begin...
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page 2: Analytics (Pie Chart + Line Chart) -->
+      <div
+        class="page-content"
+        id="page2"
+        style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr"
+      >
+        <!-- Top Left: Real-time Attack Distribution -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Real-time Attack Distribution</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Right: Real-time Trends -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Real-time Prediction Trends</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="lineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Bottom Left: Database Attack Distribution -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Database Attack Distribution</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="dbPieChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Bottom Right: All-time Prediction Trends -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">All-time Prediction Trends</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="dbLineChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page 3: Data Storage Management -->
+      <div class="page-content" id="page3">
+        <!-- Left Column: Storage Info -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Data Storage Management</span>
+          </div>
+          <div class="auto-refresh-indicator" id="autoRefreshIndicator">
+            <span class="pulse-dot"></span>
+            <span class="indicator-text">Auto-refresh: 5s</span>
+          </div>
+
+          <!-- Category Tabs -->
+          <div class="category-tabs">
+            <button
+              class="category-tab active"
+              onclick="switchCategory('benign', event)"
+            >
+              <span class="category-indicator category-benign"></span>
+              Benign
+            </button>
+            <button
+              class="category-tab"
+              onclick="switchCategory('known_attacks', event)"
+            >
+              <span class="category-indicator category-attack"></span>
+              Known Attacks
+            </button>
+            <button
+              class="category-tab"
+              onclick="switchCategory('unknown_dynamic', event)"
+            >
+              <span class="category-indicator category-dynamic"></span>
+              Unknown (Dynamic)
+            </button>
+            <button
+              class="category-tab"
+              onclick="switchCategory('unknown_static', event)"
+            >
+              <span class="category-indicator category-static"></span>
+              Unknown (Static)
+            </button>
+          </div>
+
+          <!-- Storage Stats Cards -->
+          <div class="storage-stats-left">
+            <div class="storage-stat-card card-benign">
+              <div class="stat-gradient-bar"></div>
+              <div class="stat-info">
+                <div class="stat-count" id="benignCount">0</div>
+                <div class="stat-label">Benign Records</div>
+              </div>
+            </div>
+            <div class="storage-stat-card card-attack">
+              <div class="stat-gradient-bar"></div>
+              <div class="stat-info">
+                <div class="stat-count" id="knownCount">0</div>
+                <div class="stat-label">Known Attacks</div>
+              </div>
+            </div>
+            <div class="storage-stat-card card-dynamic">
+              <div class="stat-gradient-bar"></div>
+              <div class="stat-info">
+                <div class="stat-count" id="dynamicCount">0</div>
+                <div class="stat-label">Unknown Dynamic</div>
+              </div>
+            </div>
+            <div class="storage-stat-card card-static">
+              <div class="stat-gradient-bar"></div>
+              <div class="stat-info">
+                <div class="stat-count" id="staticCount">0</div>
+                <div class="stat-label">Unknown Static</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Data Table and Detail View -->
+        <div class="quadrant">
+          <div class="data-content-wrapper-page3">
+            <!-- Data Table -->
+            <div class="data-table-container">
+              <div class="table-header">
+                <h3 id="tableTitle">
+                  <span class="title-gradient">Data Records</span>
+                </h3>
+                <div class="table-info">
+                  <span id="recordCount">0 records</span>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Label</th>
+                      <th>Confidence</th>
+                      <th>Stored At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dataTableBody">
+                    <tr>
+                      <td colspan="5" style="text-align: center; padding: 30px">
+                        Click a category tab to view data
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pagination">
+                <button
+                  class="btn-page"
+                  onclick="prevPage()"
+                  id="prevBtn"
+                  disabled
+                >
+                  ← Prev
+                </button>
+                <span id="pageInfo">Page 1</span>
+                <button
+                  class="btn-page"
+                  onclick="nextPage()"
+                  id="nextBtn"
+                  disabled
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            <!-- Record Detail Panel -->
+            <div class="record-detail-panel" id="recordDetailPanel">
+              <div class="detail-header">
+                <h3><span class="title-gradient">Record Details</span></h3>
+                <button class="btn-close-detail" onclick="closeDetailPanel()">
+                  ✕
+                </button>
+              </div>
+              <div class="detail-content" id="detailContent">
+                <p style="text-align: center; color: #999; padding: 30px">
+                  Click on a record to view details
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page 4: Retrain Model -->
+      <div class="page-content" id="page4">
+        <!-- Left Column: Immediate Retrain -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Retrain ngay lập tức</span>
+          </div>
+          <div class="retrain-section">
+            <div class="retrain-description">
+              <p>
+                Kích hoạt quá trình huấn luyện lại model ngay lập tức với dữ
+                liệu hiện có trong hệ thống.
+              </p>
+              <div class="retrain-info">
+                <div class="info-item">
+                  <span class="info-indicator indicator-data"></span>
+                  <span class="info-text"
+                    >Sử dụng toàn bộ dữ liệu đã lưu trữ</span
+                  >
+                </div>
+                <div class="info-item">
+                  <span class="info-indicator indicator-time"></span>
+                  <span class="info-text"
+                    >Thời gian ước tính: Không xác định</span
+                  >
+                </div>
+                <div class="info-item">
+                  <span class="info-indicator indicator-auto"></span>
+                  <span class="info-text"
+                    >Hệ thống sẽ tự động cập nhật khi hoàn tất</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <button
+              class="btn btn-retrain"
+              id="immediateRetrainBtn"
+              onclick="startImmediateRetrain()"
+            >
+              <span class="btn-gradient-overlay"></span>
+              <span class="btn-text">Retrain Ngay</span>
+            </button>
+
+            <!-- Loading Animation -->
+            <div
+              class="retrain-loading"
+              id="immediateRetrainLoading"
+              style="display: none"
+            >
+              <div class="loading-spinner"></div>
+              <div class="loading-text">Đang tiến hành Retrain model...</div>
+              <div class="loading-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" id="immediateProgress"></div>
+                </div>
+                <div class="progress-text" id="immediateProgressText">0%</div>
+              </div>
+            </div>
+
+            <!-- Success Message -->
+            <div
+              class="retrain-success"
+              id="immediateRetrainSuccess"
+              style="display: none"
+            >
+              <div class="success-checkmark"></div>
+              <div class="success-message">
+                Hệ thống sẽ được tự động cập nhật khi Retrain xong.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Scheduled Retrain -->
+        <div class="quadrant">
+          <div class="quadrant-title">
+            <span class="title-gradient">Retrain theo kế hoạch</span>
+          </div>
+          <div class="retrain-section">
+            <div class="retrain-description">
+              <p>Lên lịch tự động huấn luyện lại model theo chu kỳ cố định.</p>
+            </div>
+
+            <div class="schedule-form">
+              <div class="form-group">
+                <label
+                  ><span class="label-indicator"></span> Chọn thời gian bắt
+                  đầu:</label
+                >
+                <div class="datetime-inputs">
+                  <input
+                    type="number"
+                    id="scheduleHour"
+                    placeholder="Giờ"
+                    min="0"
+                    max="23"
+                    value="0"
+                  />
+                  <span>:</span>
+                  <input
+                    type="number"
+                    id="scheduleMinute"
+                    placeholder="Phút"
+                    min="0"
+                    max="59"
+                    value="0"
+                  />
+                  <input
+                    type="number"
+                    id="scheduleDay"
+                    placeholder="Ngày"
+                    min="1"
+                    max="31"
+                    value="1"
+                  />
+                  <span>/</span>
+                  <input
+                    type="number"
+                    id="scheduleMonth"
+                    placeholder="Tháng"
+                    min="1"
+                    max="12"
+                    value="1"
+                  />
+                  <span>/</span>
+                  <input
+                    type="number"
+                    id="scheduleYear"
+                    placeholder="Năm"
+                    min="2025"
+                    value="2025"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label
+                  ><span class="label-indicator"></span> Chọn chu kỳ
+                  Retrain:</label
+                >
+                <select
+                  id="scheduleCycle"
+                  onchange="toggleCustomCycle(this.value)"
+                >
+                  <option value="">-- Chọn chu kỳ --</option>
+                  <option value="weekly">Hàng tuần</option>
+                  <option value="monthly">Hàng tháng</option>
+                  <option value="yearly">Hàng năm</option>
+                  <option value="custom">Tùy chọn (nhập số ngày)</option>
+                </select>
+              </div>
+
+              <div
+                class="form-group"
+                id="customCycleGroup"
+                style="display: none"
+              >
+                <label>Nhập số ngày:</label>
+                <input
+                  type="number"
+                  id="customCycleDays"
+                  placeholder="Ví dụ: 7, 15, 30..."
+                  min="1"
+                />
+              </div>
+
+              <button
+                class="btn btn-schedule"
+                id="scheduleRetrainBtn"
+                onclick="startScheduledRetrain()"
+              >
+                <span class="btn-gradient-overlay"></span>
+                <span class="btn-text">Xác nhận lịch</span>
+              </button>
+            </div>
+
+            <!-- Loading Animation -->
+            <div
+              class="retrain-loading"
+              id="scheduledRetrainLoading"
+              style="display: none"
+            >
+              <div class="loading-spinner"></div>
+              <div class="loading-text">Đang thiết lập lịch Retrain...</div>
+              <div class="loading-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" id="scheduledProgress"></div>
+                </div>
+                <div class="progress-text" id="scheduledProgressText">0%</div>
+              </div>
+            </div>
+
+            <!-- Success Message -->
+            <div
+              class="retrain-success"
+              id="scheduledRetrainSuccess"
+              style="display: none"
+            >
+              <div class="success-checkmark"></div>
+              <div class="success-message" id="scheduledSuccessMessage"></div>
+            </div>
+
+            <!-- Current Schedule Info -->
+            <div
+              class="current-schedule"
+              id="currentScheduleInfo"
+              style="display: none"
+            >
+              <div class="schedule-title">
+                <span class="title-gradient">Lịch hiện tại:</span>
+              </div>
+              <div class="schedule-details" id="scheduleDetails"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>Smart Factory</p>
+        <p>Real-time Processing with Parallel Computing</p>
+      </div>
+    </div>
+
+    <!-- Relabel Modal -->
+    <div id="relabelModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeRelabelModal()">&times;</span>
+        <h2><span class="title-gradient">Relabel to Known Attack</span></h2>
+        <p>
+          Move this record from <strong>Unknown Dynamic</strong> to
+          <strong>Known Attacks</strong>
+        </p>
+        <form onsubmit="saveRelabel(event)">
+          <input type="hidden" id="relabelIndex" />
+          <div class="form-group">
+            <label>Select Attack Type:</label>
+            <select
+              id="attackType"
+              required
+              onchange="toggleCustomInput(this.value)"
+            >
+              <option value="">-- Choose Attack --</option>
+              <option value="DDoS">DDoS</option>
+              <option value="DoS">DoS</option>
+              <option value="Port Scan">Port Scan</option>
+              <option value="Brute Force">Brute Force</option>
+              <option value="Web Attack">Web Attack</option>
+              <option value="Botnet">Botnet</option>
+              <option value="Infiltration">Infiltration</option>
+              <option value="custom">Custom (Enter your own)</option>
+            </select>
+          </div>
+          <div class="form-group" id="customLabelGroup" style="display: none">
+            <label>Custom Attack Label:</label>
+            <input
+              type="text"
+              id="customAttackLabel"
+              placeholder="Enter attack name..."
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-primary">
+              Relabel & Move
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeRelabelModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
